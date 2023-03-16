@@ -4,11 +4,11 @@ import os
 import torch.nn as nn
 import time
 import torch.nn.functional as F
-from models.criterions import softmaxBCE_dice,KL,ce_loss,mse_loss,dce_eviloss
+from criterions import softmaxBCE_dice,KL,ce_loss,mse_loss,dce_eviloss
 from predict import tailor_and_concat
-from models.lib.VNet3D import VNet
-from models.lib.UNet3DZoo import Unet,AttUnet
-from models.lib.TransBTS_downsample8x_skipconnection import TransBTS
+from VNet3D import VNet
+from UNet3DZoo import Unet,AttUnet
+from TransBTS_downsample8x_skipconnection import TransBTS
 
 class TMSU(nn.Module):
 

@@ -206,7 +206,7 @@ class BraTS(Dataset):
         # input could be chosed with t1/t2/four modalities
         path = self.paths[item]
         if self.mode == 'train':
-            image, label = pkload(path + 'data_f32b04M.pkl')
+            image, label = pkload(path + 'data_f32b0.pkl')
             # print(np.unique(label))
             label[label==4]=3
             # print(np.unique(label))
@@ -254,41 +254,41 @@ class BraTS(Dataset):
         return [torch.cat(v) for v in zip(*batch)]
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--root', default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/TBraTS/BraTS2020', type=str)
-    parser.add_argument('--train_dir', default='BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData', type=str)
-    parser.add_argument('--valid_dir', default='BraTS2020_ValidationData/MICCAI_BraTS2020_ValidationData', type=str)
-    # parser.add_argument('--test_dir', default='MICCAI_BraTS_2019_Data_TTest', type=str)
-    parser.add_argument('--mode', default='train', type=str)
-    parser.add_argument('--train_file', default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/TBraTS/BraTS2020/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData/Ttrain_subject.txt', type=str)
-    parser.add_argument('--valid_file', default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/TBraTS/BraTS2020/BraTS2020_ValidationData/MICCAI_BraTS2020_ValidationData/Tval_subject.txt', type=str)
-    # parser.add_argument('--test_file', default='E:/BraTSdata1/archive2019/MICCAI_BraTS_2019_Data_Training/Ttest_subject.txt', type=str)
-    parser.add_argument('--dataset', default='brats', type=str)
-    parser.add_argument('--num_gpu', default= 4, type=int)
-    parser.add_argument('--num_workers', default=4, type=int)
-    parser.add_argument('--batch_size', default=8, type=int)
-    parser.add_argument('--modal', default='both', type=str)
-    parser.add_argument('--Variance', default=0.1, type=int)
-    args = parser.parse_args()
-    train_list = os.path.join(args.root, args.train_dir, args.train_file)
-    train_root = os.path.join(args.root, args.train_dir)
-    val_list = os.path.join(args.root, args.valid_dir, args.valid_file)
-    val_root = os.path.join(args.root, args.valid_dir)
-    # test_list = os.path.join(args.root, args.test_dir, args.test_file)
-    # test_root = os.path.join(args.root, args.test_dir)
-    train_set = BraTS(train_list, train_root, args.mode,args.modal)
-    val_set = BraTS(val_list, val_root, args.mode, args.modal)
-    # test_set = BraTS(test_list, test_root, args.mode, args.modal)
-    # train_sampler = torch.utils.data.distributed.DistributedSampler(train_set)
-    # train_loader = DataLoader(dataset=train_set, sampler=train_sampler, batch_size=args.batch_size // args.num_gpu,
-    #                           drop_last=True, num_workers=args.num_workers, pin_memory=True)
-    train_loader = DataLoader(dataset=train_set, batch_size=args.batch_size)
-    val_loader = DataLoader(dataset=val_set, batch_size=1)
-    # test_loader = DataLoader(dataset=test_set, batch_size=1)
-    for i, data in enumerate(train_loader):
-        x, target = data
-        if args.mode == 'test':
-            noise = torch.clamp(torch.randn_like(x) * args.Variance, -args.Variance * 2, args.Variance * 2)
-            x += noise
-        # x_no = np.unique(x.numpy())
-        # target_no = np.unique(target.numpy())
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--root', default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/DataSet', type=str)
+  parser.add_argument('--train_dir', default='MICCAI_BraTS_2019_Data_TTraining', type=str)
+  parser.add_argument('--valid_dir', default='MICCAI_BraTS_2019_Data_TValidation', type=str)
+  parser.add_argument('--test_dir', default='MICCAI_BraTS_2019_Data_TTest', type=str)
+  parser.add_argument('--mode', default='train', type=str)
+  parser.add_argument('--train_file', default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/DataSet/MICCAI_BraTS_2019_Data_Training/Ttrain_subject.txt', type=str)
+  parser.add_argument('--valid_file', default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/DataSet/MICCAI_BraTS_2019_Data_Training/Tval_subject.txt', type=str)
+  parser.add_argument('--test_file', default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/DataSet\MICCAI_BraTS_2019_Data_Training/Ttest_subject.txt', type=str)
+  parser.add_argument('--dataset', default='brats', type=str)
+  parser.add_argument('--num_gpu', default= 4, type=int)
+  parser.add_argument('--num_workers', default=4, type=int)
+  parser.add_argument('--batch_size', default=8, type=int)
+  parser.add_argument('--modal', default='both', type=str)
+  parser.add_argument('--Variance', default=0.1, type=int)
+  args = parser.parse_args()
+  train_list = os.path.join(args.root, args.train_dir, args.train_file)
+  train_root = os.path.join(args.root, args.train_dir)
+  val_list = os.path.join(args.root, args.valid_dir, args.valid_file)
+  val_root = os.path.join(args.root, args.valid_dir)
+  test_list = os.path.join(args.root, args.test_dir, args.test_file)
+  test_root = os.path.join(args.root, args.test_dir)
+  train_set = BraTS(train_list, train_root, args.mode,args.modal)
+  val_set = BraTS(val_list, val_root, args.mode, args.modal)
+  test_set = BraTS(test_list, test_root, args.mode, args.modal)
+  # train_sampler = torch.utils.data.distributed.DistributedSampler(train_set)
+  # train_loader = DataLoader(dataset=train_set, sampler=train_sampler, batch_size=args.batch_size // args.num_gpu,
+  #                           drop_last=True, num_workers=args.num_workers, pin_memory=True)
+  train_loader = DataLoader(dataset=train_set, batch_size=args.batch_size)
+  val_loader = DataLoader(dataset=val_set, batch_size=1)
+  test_loader = DataLoader(dataset=test_set, batch_size=1)
+  for i, data in enumerate(train_loader):
+      x, target = data
+      if args.mode == 'test':
+          noise = torch.clamp(torch.randn_like(x) * args.Variance, -args.Variance * 2, args.Variance * 2)
+          x += noise
+      # x_no = np.unique(x.numpy())
+      # target_no = np.unique(target.numpy())

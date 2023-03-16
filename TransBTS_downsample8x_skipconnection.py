@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
-from models.lib.Transformer import TransformerModel
-from models.lib.PositionalEncoding import FixedPositionalEncoding,LearnedPositionalEncoding
-from models.lib.Unet_skipconnection import Unet
+from Transformer import TransformerModel
+from PositionalEncoding import FixedPositionalEncoding,LearnedPositionalEncoding
+from Unet_skipconnection import Unet
 
 
 class TransformerBTS(nn.Module):

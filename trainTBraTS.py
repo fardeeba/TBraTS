@@ -4,8 +4,8 @@ import torch.optim as optim
 import time
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
-from models.trustedseg import TMSU
-from myData.myBraTSData import BraTS
+from trustedseg import TMSU
+from myBraTSData import BraTS
 from predict import tailor_and_concat,softmax_mIOU_score,softmax_output_dice
 import torch.nn.functional as F
 import warnings
@@ -56,21 +56,21 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=0.002, metavar='LR',
                         help='learning rate')
     # DataSet Information
-    parser.add_argument('--root', default='E:/BraTSdata1/archive2019', type=str)
+    parser.add_argument('--root', default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/DataSet', type=str)
     parser.add_argument('--save_dir', default='./results', type=str)
     parser.add_argument('--train_dir', default='MICCAI_BraTS_2019_Data_TTraining', type=str)
     parser.add_argument('--valid_dir', default='MICCAI_BraTS_2019_Data_TValidation', type=str)
     parser.add_argument('--test_dir', default='MICCAI_BraTS_2019_Data_TTest', type=str)
     parser.add_argument("--mode", default="train", type=str, help="train/test/train&test")
     parser.add_argument('--train_file',
-                        default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/TBraTS/BraTS2020/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData/Ttrain_subject.txt',
+                        default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/DataSet/MICCAI_BraTS_2019_Data_Training/Ttrain_subject.txt',
                         type=str)
     parser.add_argument('--valid_file',
-                        default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/TBraTS/BraTS2020/BraTS2020_ValidationData/MICCAI_BraTS2020_ValidationData/Tval_subject.txt',
+                        default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/DataSet/MICCAI_BraTS_2019_Data_Training/Tval_subject.txt',
                         type=str)
-    # parser.add_argument('--test_file',
-    #                     default='E:/BraTSdata1/archive2019/MICCAI_BraTS_2019_Data_Training/Ttest_subject.txt',
-    #                     type=str)
+    parser.add_argument('--test_file',
+                         default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/DataSet\MICCAI_BraTS_2019_Data_Training/Ttest_subject.txt',
+                         type=str)
     parser.add_argument('--dataset', default='brats', type=str)
     parser.add_argument('--classes', default=4, type=int)# brain tumor class
     parser.add_argument('--input_H', default=240, type=int)
@@ -99,11 +99,11 @@ if __name__ == "__main__":
     valid_set = BraTS(valid_list, valid_root,'valid',args.input_dims)
     valid_loader = DataLoader(valid_set, batch_size=1)
     print('Samples for valid = {}'.format(len(valid_set)))
-    # test_list = os.path.join(args.root, args.test_dir, args.test_file)
-    # test_root = os.path.join(args.root, args.test_dir)
-    # test_set = BraTS(test_list, test_root,'test',args.input_dims)
-    # test_loader = DataLoader(test_set, batch_size=1)
-    # print('Samples for test = {}'.format(len(test_set)))
+    test_list = os.path.join(args.root, args.test_dir, args.test_file)
+    test_root = os.path.join(args.root, args.test_dir)
+    test_set = BraTS(test_list, test_root,'test',args.input_dims)
+    test_loader = DataLoader(test_set, batch_size=1)
+    print('Samples for test = {}'.format(len(test_set)))
 
     model = TMSU(args.classes, args.modes, args.model_name, args.input_dims,args.epochs, args.lambda_epochs) # lambda KL divergence
     total = sum([param.nelement() for param in model.parameters()])
