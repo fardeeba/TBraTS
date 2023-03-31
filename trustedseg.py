@@ -9,6 +9,7 @@ from predict import tailor_and_concat
 from VNet3D import VNet
 from UNet3DZoo import Unet,AttUnet
 from TransBTS_downsample8x_skipconnection import TransBTS
+device='cuda' if torch.cuda.is_available() else 'cpu'
 
 class TMSU(nn.Module):
 
@@ -35,7 +36,7 @@ class TMSU(nn.Module):
             self.backbone = Unet(in_channels=4, base_channels=16, num_classes=classes)
         else:
             self.backbone = Unet(in_channels=1, base_channels=16, num_classes=classes)
-        self.backbone.cuda()
+        self.backbone.to(device)
         self.modes = modes
         self.classes = classes
         self.eps = 1e-10

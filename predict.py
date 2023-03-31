@@ -18,6 +18,7 @@ import numpy as np
 import nibabel as nib
 import imageio
 # from test_uncertainty import ece_binary,UncertaintyAndCorrectionEvalNumpy,Normalized_U
+device='cuda' if torch.cuda.is_available() else 'cpu'
 
 def cal_ueo(to_evaluate,thresholds):
     UEO = []
@@ -35,7 +36,7 @@ def cal_ece(logits,targets):
     logit = logits
     target = targets
     pred = F.softmax(logit, dim=0)
-    pc = pred.cpu().detach().numpy()
+    pc = pred
     pc = pc.argmax(0)
     ece = ece_binary(pc, target)
     return ece
@@ -43,7 +44,7 @@ def cal_ece(logits,targets):
 def cal_ece_our(preds,targets):
     # ece_total = 0
     target = targets
-    pc = preds.cpu().detach().numpy()
+    pc = preds
     ece = ece_binary(pc, target)
     return ece
 
@@ -237,10 +238,9 @@ def validate_softmax(
         print('-------------------------------------------------------------------')
         msg = 'Subject {}/{}, '.format(i + 1, len(valid_loader))
         x, target = data
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         x = x.to(device)
-        # target = target.to(device)
-        target = torch.squeeze(target).cpu().numpy()
+        target = target.to(device)
+        target = torch.squeeze(target)
         torch.cuda.synchronize()  # add the code synchronize() to correctly count the runtime.
         start_time = time.time()
         logit = tailor_and_concat(x, model)
@@ -251,7 +251,7 @@ def validate_softmax(
         runtimes.append(elapsed_time)
 
         output = F.softmax(logit, dim=1)
-        output = output[0, :, :H, :W, :T].cpu().detach().numpy()
+        output = output[0, :, :H, :W, :T]
         output = output.argmax(0)
         iou_res = softmax_mIOU_score(output, target[:, :, :155])
         dice_res = softmax_output_dice(output,target[:,:,:155])
@@ -355,7 +355,7 @@ def test_softmax(
         #     noised_x[:, 0, ...] = x[:, 0, ...]
         x.cuda()
         noised_x.cuda()
-        target = torch.squeeze(target).cpu().numpy()
+        target = torch.squeeze(target)
         mean_uncertainty = torch.zeros(0)
         noised_mean_uncertainty = torch.zeros(0)
         # output = np.zeros((4, x.shape[2], x.shape[3], 155),dtype='float32')
@@ -378,12 +378,12 @@ def test_softmax(
                     noised_uncertainty += Uentropy(logit_noise, 4)
                     logit = F.softmax(logit, dim=1)
                     output = logit / model_len
-                    output = output[0, :, :H, :W, :T].cpu().detach().numpy()
+                    output = output[0, :, :H, :W, :T]
                     pc += output.argmax(0)
                     # for noise
                     logit_noise = F.softmax(logit_noise, dim=1)
                     noised_output = logit_noise / model_len
-                    noised_output = noised_output[0, :, :H, :W, :T].cpu().detach().numpy()
+                    noised_output = noised_output[0, :, :H, :W, :T]
                     noised_pc += noised_output.argmax(0)
                 pc = pc / T_drop
                 noised_pc = noised_pc / T_drop
@@ -397,13 +397,13 @@ def test_softmax(
                 logit = tailor_and_concat(x, model)
                 logit = F.softmax(logit, dim=1)
                 output = logit / model_len
-                output = output[0, :, :H, :W, :T].cpu().detach().numpy()
+                output = output[0, :, :H, :W, :T]
                 pc = output.argmax(0)
                 # for input noise
                 logit_noise = tailor_and_concat(noised_x, model)
                 logit_noise = F.softmax(logit_noise, dim=1)
                 noised_output = logit_noise / model_len
-                noised_output = noised_output[0, :, :H, :W, :T].cpu().detach().numpy()
+                noised_output = noised_output[0, :, :H, :W, :T]
                 noised_pc = noised_output.argmax(0)
                 uncertainty = Uentropy(logit, 4)
                 noised_uncertainty = Uentropy(logit_noise, 4)
@@ -484,16 +484,16 @@ def test_softmax(
             noised_output = noised_logit / 8.0  # mean
             uncertainty = Uentropy(output, 4)
             noised_uncertainty = Uentropy(noised_output, 4)
-            output = output[0, :, :H, :W, :T].cpu().detach().numpy()
+            output = output[0, :, :H, :W, :T]
             pc = output.argmax(0)
-            noised_output = noised_output[0, :, :H, :W, :T].cpu().detach().numpy()
+            noised_output = noised_output[0, :, :H, :W, :T]
             noised_pc = noised_output.argmax(0)
             mean_uncertainty = torch.mean(uncertainty)
             noised_mean_uncertainty = torch.mean(noised_uncertainty)
         output = pc
         noised_output = noised_pc
-        U_output = uncertainty.cpu().detach().numpy()
-        NU_output = noised_uncertainty.cpu().detach().numpy()
+        U_output = uncertainty
+        NU_output = noised_uncertainty
         certainty_total += mean_uncertainty  # mix _uncertainty mean_uncertainty mean_uncertainty_succ
         noise_certainty_total += noised_mean_uncertainty  # noised_mix_uncertainty noised_mean_uncertainty noised_mean_uncertainty_succ
         # ece
@@ -505,7 +505,7 @@ def test_softmax(
         to_evaluate = dict()
         to_evaluate['target'] = target[:, :, :155]
         u = torch.squeeze(uncertainty)
-        U = u.cpu().detach().numpy()
+        U = u
         to_evaluate['prediction'] = output
         to_evaluate['uncertainty'] = U
         UEO = cal_ueo(to_evaluate, thresholds)
@@ -513,7 +513,7 @@ def test_softmax(
         noise_to_evaluate = dict()
         noise_to_evaluate['target'] = target[:, :, :155]
         noise_u = torch.squeeze(noised_uncertainty)
-        noise_U = noise_u.cpu().detach().numpy()
+        noise_U = noise_u
         noise_to_evaluate['prediction'] = noised_output
         noise_to_evaluate['uncertainty'] = noise_U
         noise_UEO = cal_ueo(noise_to_evaluate, thresholds)
@@ -738,7 +738,7 @@ def testensemblemax(
         noised_x = x + noise_m
         x.cuda()
         noised_x.cuda()
-        target = torch.squeeze(target).cpu().numpy()
+        target = torch.squeeze(target)
 
         if not use_TTA:
             torch.cuda.synchronize()  # add the code synchronize() to correctly count the runtime.
@@ -754,8 +754,8 @@ def testensemblemax(
             uncertainty = Uentropy(logit/10, 4)
             noised_uncertainty = Uentropy(logit_noise/10, 4)
 
-            U_output = torch.squeeze(uncertainty).cpu().detach().numpy()
-            noised_U_output = torch.squeeze(noised_uncertainty).cpu().detach().numpy()
+            U_output = torch.squeeze(uncertainty)
+            noised_U_output = torch.squeeze(noised_uncertainty)
             joblib.dump({'logit': logit, 'logit_noise': logit_noise, 'uncertainty': uncertainty,
                          'noised_uncertainty': noised_uncertainty, 'U_output': U_output,
                          'noised_U_output': noised_U_output}, 'Uensemble_uncertainty_{}.pkl'.format(i))
@@ -794,7 +794,7 @@ def testensemblemax(
             noised_uncertainty = Uentropy(noised_output, 4)
         mean_uncertainty = torch.mean(uncertainty)
         noised_mean_uncertainty = torch.mean(noised_uncertainty)
-        output = output[0, :, :H, :W, :T].cpu().detach().numpy()
+        output = output[0, :, :H, :W, :T]
         output = output.argmax(0)
         # iou_res = softmax_mIOU_score(output, target[:, :, :155])
         hd_res = softmax_output_hd(output, target[:, :, :155])
@@ -810,7 +810,7 @@ def testensemblemax(
         assd_total_TC += assd_res[1]
         assd_total_ET += assd_res[2]
         # for noise_x
-        noised_output = noised_output[0, :, :H, :W, :T].cpu().detach().numpy()
+        noised_output = noised_output[0, :, :H, :W, :T]
         noised_output = noised_output.argmax(0)
         noise_assd_res = softmax_output_assd(noised_output, target[:, :, :155])
         noise_hd_res = softmax_output_hd(noised_output, target[:, :, :155])

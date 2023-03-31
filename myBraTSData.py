@@ -221,7 +221,7 @@ class BraTS(Dataset):
                 sample = transformboth(sample)
             return sample['image'], sample['label']
         elif self.mode == 'valid':
-            image, label = pkload(path + 'data_f32b04M.pkl')
+            image, label = pkload(path + 'data_f32b0.pkl')
             label[label == 4] = 3
             if self.modal == 't1':
                 sample = {'image': image[..., 0], 'label': label}
@@ -234,7 +234,7 @@ class BraTS(Dataset):
                 sample = transformboth_valid(sample)
             return sample['image'], sample['label']
         else:
-            image,label = pkload(path + 'data_f32b04M.pkl')
+            image,label = pkload(path + 'data_f32b0.pkl')
             label[label == 4] = 3
             if self.modal == 't1':
                 sample = {'image': image[..., 0], 'label': label}
@@ -255,14 +255,14 @@ class BraTS(Dataset):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument('--root', default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/DataSet', type=str)
+  parser.add_argument('--root', default='/kaggle/input/brats2019-lgg/DataSet1', type=str)
   parser.add_argument('--train_dir', default='MICCAI_BraTS_2019_Data_TTraining', type=str)
   parser.add_argument('--valid_dir', default='MICCAI_BraTS_2019_Data_TValidation', type=str)
   parser.add_argument('--test_dir', default='MICCAI_BraTS_2019_Data_TTest', type=str)
   parser.add_argument('--mode', default='train', type=str)
-  parser.add_argument('--train_file', default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/DataSet/MICCAI_BraTS_2019_Data_Training/Ttrain_subject.txt', type=str)
-  parser.add_argument('--valid_file', default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/DataSet/MICCAI_BraTS_2019_Data_Training/Tval_subject.txt', type=str)
-  parser.add_argument('--test_file', default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/DataSet\MICCAI_BraTS_2019_Data_Training/Ttest_subject.txt', type=str)
+  parser.add_argument('--train_file', default='/kaggle/input/brats2019-lgg/DataSet1/MICCAI_BraTS_2019_Data_Training/Ttrain_subject.txt', type=str)
+  parser.add_argument('--valid_file', default='/kaggle/input/brats2019-lgg/DataSet1/MICCAI_BraTS_2019_Data_Training/Tval_subject.txt', type=str)
+  parser.add_argument('--test_file', default='/kaggle/input/brats2019-lgg/DataSet1/MICCAI_BraTS_2019_Data_Training/Ttest_subject.txt', type=str)
   parser.add_argument('--dataset', default='brats', type=str)
   parser.add_argument('--num_gpu', default= 4, type=int)
   parser.add_argument('--num_workers', default=4, type=int)

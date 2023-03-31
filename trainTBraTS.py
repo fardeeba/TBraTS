@@ -8,10 +8,9 @@ from trustedseg import TMSU
 from myBraTSData import BraTS
 from predict import tailor_and_concat,softmax_mIOU_score,softmax_output_dice
 import torch.nn.functional as F
-import warnings
-warnings.filterwarnings("ignore")
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 import numpy as np
+import matplotlib.pyplot as plt
+device='cuda' if torch.cuda.is_available() else 'cpu'
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -56,20 +55,20 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=0.002, metavar='LR',
                         help='learning rate')
     # DataSet Information
-    parser.add_argument('--root', default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/DataSet', type=str)
+    parser.add_argument('--root', default='/kaggle/input/brats2019-lgg/DataSet1', type=str)
     parser.add_argument('--save_dir', default='./results', type=str)
     parser.add_argument('--train_dir', default='MICCAI_BraTS_2019_Data_TTraining', type=str)
     parser.add_argument('--valid_dir', default='MICCAI_BraTS_2019_Data_TValidation', type=str)
     parser.add_argument('--test_dir', default='MICCAI_BraTS_2019_Data_TTest', type=str)
     parser.add_argument("--mode", default="train", type=str, help="train/test/train&test")
     parser.add_argument('--train_file',
-                        default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/DataSet/MICCAI_BraTS_2019_Data_Training/Ttrain_subject.txt',
+                        default='/kaggle/input/brats2019-lgg/DataSet1/MICCAI_BraTS_2019_Data_Training/Ttrain_subject.txt',
                         type=str)
     parser.add_argument('--valid_file',
-                        default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/DataSet/MICCAI_BraTS_2019_Data_Training/Tval_subject.txt',
+                        default='/kaggle/input/brats2019-lgg/DataSet1/MICCAI_BraTS_2019_Data_Training/Tval_subject.txt',
                         type=str)
     parser.add_argument('--test_file',
-                         default='D:/FAST_MSDS/AID Lab/Thesis/Repos/uncertainityMeasure/DataSet\MICCAI_BraTS_2019_Data_Training/Ttest_subject.txt',
+                         default='/kaggle/input/brats2019-lgg/DataSet1/MICCAI_BraTS_2019_Data_Training/Ttest_subject.txt',
                          type=str)
     parser.add_argument('--dataset', default='brats', type=str)
     parser.add_argument('--classes', default=4, type=int)# brain tumor class
@@ -106,63 +105,119 @@ if __name__ == "__main__":
     print('Samples for test = {}'.format(len(test_set)))
 
     model = TMSU(args.classes, args.modes, args.model_name, args.input_dims,args.epochs, args.lambda_epochs) # lambda KL divergence
+    # # Define the path to the saved file
+    # saved_file_path = '/content/TBraTS/_epoch_9a.pth'
+
+    # # Load the saved file into memory
+    # saved_data = torch.load(saved_file_path)
+
+    # # Extract the desired state_dict by its key
+    # state_dict_key = 'state_dict'
+    # model_state_dict = saved_data[state_dict_key]
+    # model.load_state_dict(model_state_dict)
     total = sum([param.nelement() for param in model.parameters()])
     print("Number of model's parameter: %.2fM" % (total / 1e6))
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-5)
 
-    model.cuda()
+
+    model
+
 
     def train(epoch):
 
         model.train()
         loss_meter = AverageMeter()
+        dice_total, iou_total = 0, 0
+        whole_dice , core_dice, enhanching_dice = 0, 0, 0
+        whole_iou , core_iou, enhanching_iou = 0, 0, 0
         step = 0
         dt_size = len(train_loader.dataset)
         for i, data in enumerate(train_loader):
             step += 1
             input, target = data
-            x = input.cuda()  # for multi-modal combine train
-            target = target.cuda()
+            x = input  # for multi-modal combine train
+            x=x.to(device)
+            target = target.to(device)
             args.mode = 'train'
             evidences, loss = model(x,target,epoch,args.mode)
 
+            # max
+            _, predicted = torch.max(evidences.data, 1)
+            output = predicted
+
+            target = torch.squeeze(target)
+            iou_res = softmax_mIOU_score(output, target[:, :, :155])
+            dice_res = softmax_output_dice(output, target[:, :, :155])
+            dice_values = [t.item() for t in dice_res]
+            whole_dice += dice_values[0]
+            core_dice += dice_values[1]
+            enhanching_dice += dice_values[2]
+            iou_values = [t.item() for t in iou_res]
+            whole_iou += iou_values[0]
+            core_iou += iou_values[1]
+            enhanching_iou += iou_values[2]
+            dice_total += dice_res[1]
+            iou_total += iou_res[1]
+            # loss & noised loss
+            
             print("%d/%d,train_loss:%0.3f" % (step, (dt_size - 1) // train_loader.batch_size + 1, loss.item()))
+            print('current_iou:{} ; current_dice:{}'.format(iou_res, dice_res))
 
             optimizer.zero_grad()
             loss.requires_grad_(True).backward()
             optimizer.step()
 
             loss_meter.update(loss.item())
-        return loss_meter.avg
+        aver_dice = dice_total / len(train_loader)
+        aver_iou = iou_total / len(train_loader)
+        avg_whole_dice = whole_dice / len(train_loader)
+        avg_core_dice = core_dice / len(train_loader)
+        avg_enhancing_dice = enhanching_dice / len(train_loader)
+        avg_whole_iou = whole_iou / len(train_loader)
+        avg_core_iou = core_iou / len(train_loader)
+        avg_enhancing_iou = enhanching_iou / len(train_loader)
+        return loss_meter.avg, aver_dice, aver_iou, avg_whole_dice, avg_core_dice, avg_enhancing_dice, avg_whole_iou, avg_core_iou, avg_enhancing_iou
 
     def val(args,current_epoch,best_dice):
         print('===========>Validation begining!===========')
         model.eval()
         loss_meter = AverageMeter()
         dice_total, iou_total = 0, 0
+        whole_dice , core_dice, enhanching_dice = 0, 0, 0
+        whole_iou , core_iou, enhanching_iou = 0, 0, 0
         step = 0
         # model.eval()
         for i, data in enumerate(valid_loader):
             step += 1
             input, target = data
+            x = input
+            x=x.to(device)
 
             # add gaussian noise to input data
-            x = dict()
-            for m_num in range(input.shape[1]):
-                x[m_num] = input[..., m_num, :, :, :, ].unsqueeze(1).cuda()
-            target = target.cuda()
+            # x = dict()
+            # for m_num in range(input.shape[1]):
+            #     x[m_num] = input[..., m_num, :, :, :, ].unsqueeze(1)
+            target = target.to(device)
 
             with torch.no_grad():
                 args.mode = 'val'
                 evidences, loss = model(x, target[:, :, :, :155], current_epoch,args.mode) # two modality or four modality
                 # max
-                _, predicted = torch.max(evidence.data, 1)
-                output = predicted.cpu().detach().numpy()
+                _, predicted = torch.max(evidences.data, 1)
+                output = predicted
 
-                target = torch.squeeze(target).cpu().numpy()
+                target = torch.squeeze(target)
                 iou_res = softmax_mIOU_score(output, target[:, :, :155])
                 dice_res = softmax_output_dice(output, target[:, :, :155])
                 print('current_iou:{} ; current_dice:{}'.format(iou_res, dice_res))
+                dice_values = [t.item() for t in dice_res]
+                whole_dice += dice_values[0]
+                core_dice += dice_values[1]
+                enhanching_dice += dice_values[2]
+                iou_values = [t.item() for t in iou_res]
+                whole_iou += iou_values[0]
+                core_iou += iou_values[1]
+                enhanching_iou += iou_values[2]
                 dice_total += dice_res[1]
                 iou_total += iou_res[1]
                 # loss & noised loss
@@ -176,13 +231,30 @@ if __name__ == "__main__":
                 print('aver_dice:{} > best_dice:{}'.format(aver_dice, best_dice))
                 best_dice = aver_dice
                 print('===========>save best model!')
-                file_name = os.path.join(args.save_dir, '_epoch_{}.pth'.format(current_epoch))
+                file_name = os.path.join('/kaggle/working/TBraTS', '_epoch_{}.pth'.format(current_epoch))
                 torch.save({
                     'epoch': current_epoch,
                     'state_dict': model.state_dict(),
                 },
                     file_name)
-        return loss_meter.avg, best_dice
+        # print('====> aver_dice: {:.4f}'.format(aver_dice))
+        # print('====> aver_iou: {:.4f}'.format(aver_iou))
+        aver_dice = dice_total / len(train_loader)
+        aver_iou = iou_total / len(train_loader)
+        avg_whole_dice = whole_dice / len(train_loader)
+        avg_core_dice = core_dice / len(train_loader)
+        avg_enhancing_dice = enhanching_dice / len(train_loader)
+        avg_whole_iou = whole_iou / len(train_loader)
+        avg_core_iou = core_iou / len(train_loader)
+        avg_enhancing_iou = enhanching_iou / len(train_loader)
+        print('===========>save current model!')
+        file_name = os.path.join('/kaggle/working/TBraTS', 'current_epoch.pth')
+        torch.save({
+            'epoch': current_epoch,
+            'state_dict': model.state_dict(),
+        },
+            file_name)
+        return loss_meter.avg, best_dice, aver_dice, aver_iou, avg_whole_dice, avg_core_dice, avg_enhancing_dice, avg_whole_iou, avg_core_iou, avg_enhancing_iou
 
     def test(args):
         print('===========>Test begining!===========')
@@ -216,9 +288,9 @@ if __name__ == "__main__":
             x = dict()
             noised_x = dict()
             for m_num in range(input.shape[1]):
-                x[m_num] = input[...,m_num,:,:,:,].unsqueeze(1).cuda()
-                noised_x[m_num] = noised_input[...,m_num,:,:,:,].unsqueeze(1).cuda()
-            target = target.cuda()
+                x[m_num] = input[...,m_num,:,:,:,].unsqueeze(1)
+                noised_x[m_num] = noised_input[...,m_num,:,:,:,].unsqueeze(1)
+            target = target
 
             with torch.no_grad():
                 args.mode = 'test'
@@ -230,20 +302,20 @@ if __name__ == "__main__":
                     noised_evidences, noised_loss = model(noised_x, target[:, :, :, :155], args.epochs,args.mode,args.use_TTA)
                 # results with TTA or not
 
-                output = F.softmax(evidence, dim=1)
+                output = F.softmax(evidences, dim=1)
                 # for input noise
-                noised_output = F.softmax(noised_evidence, dim=1)
+                noised_output = F.softmax(noised_evidences, dim=1)
 
                 # dice
-                output = output[0, :, :args.input_H, :args.input_W, :args.input_D].cpu().detach().numpy()
+                output = output[0, :, :args.input_H, :args.input_W, :args.input_D]
                 output = output.argmax(0)
-                target = torch.squeeze(target).cpu().numpy()
+                target = torch.squeeze(target)
                 iou_res = softmax_mIOU_score(output, target[:, :, :155])
                 dice_res = softmax_output_dice(output, target[:, :, :155])
                 dice_total += dice_res[1]
                 iou_total += iou_res[1]
                 # for noise_x
-                noised_output = noised_output[0, :, :args.input_H, :args.input_W, :args.input_D].cpu().detach().numpy()
+                noised_output = noised_output[0, :, :args.input_H, :args.input_W, :args.input_D]
                 noised_output = noised_output.argmax(0)
                 noised_iou_res = softmax_mIOU_score(noised_output, target[:, :, :155])
                 noised_dice_res = softmax_output_dice(noised_output, target[:, :, :155])
@@ -262,10 +334,46 @@ if __name__ == "__main__":
 
     epoch_loss = 0
     best_dice = 0
-    for epoch in range(1, args.epochs + 1):
-        print('===========Train begining!===========')
-        print('Epoch {}/{}'.format(epoch, args.epochs - 1))
-        epoch_loss = train(epoch)
-        print("epoch %d avg_loss:%0.3f" % (epoch, epoch_loss))
-        val_loss, best_dice = val(args,epoch,best_dice)
+    training_losses = []
+    validation_losses = []
+    try:
+        for epoch in range(1, args.epochs + 1):
+            print('===========Train begining!===========')
+            print('Epoch {}/{}'.format(epoch, args.epochs - 1))
+            epoch_loss, avg_epoch_dice, avg_epoch_iou, avg_whole_dice, avg_core_dice, avg_enhancing_dice, avg_whole_iou, avg_core_iou, avg_enhancing_iou = train(epoch)
+            print("epoch %d avg_train_loss:%0.3f" % (epoch, epoch_loss))
+            print("epoch %d avg_dice:%0.3f" % (epoch, avg_epoch_dice))
+            print("epoch %d avg_iou:%0.3f" % (epoch, avg_epoch_iou))
+            print("epoch %d avg_whole_tumor_dice_score:%0.3f" % (epoch, avg_whole_dice))
+            print("epoch %d avg_tumor_core_dice_score:%0.3f" % (epoch, avg_core_dice))
+            print("epoch %d avg_enhancing_tumor_dice_score:%0.3f" % (epoch, avg_enhancing_dice))
+            print("epoch %d avg_whole_tumor_iou_score:%0.3f" % (epoch, avg_whole_iou))
+            print("epoch %d avg_tumor_core_iou_score:%0.3f" % (epoch, avg_core_iou))
+            print("epoch %d avg_enhancing_tumor_iou_score:%0.3f" % (epoch, avg_enhancing_iou))
+            val_loss, best_dice, avg_epoch_dice, avg_epoch_iou, avg_whole_dice, avg_core_dice, avg_enhancing_dice, avg_whole_iou, avg_core_iou, avg_enhancing_iou = val(args,epoch,best_dice)
+            print("epoch %d avg_val_loss:%0.3f" % (epoch, val_loss))
+            print("epoch %d avg_dice:%0.3f" % (epoch, avg_epoch_dice))
+            print("epoch %d avg_iou:%0.3f" % (epoch, avg_epoch_iou))
+            print("epoch %d avg_whole_tumor_dice_score:%0.3f" % (epoch, avg_whole_dice))
+            print("epoch %d avg_tumor_core_dice_score:%0.3f" % (epoch, avg_core_dice))
+            print("epoch %d avg_enhancing_tumor_dice_score:%0.3f" % (epoch, avg_enhancing_dice))
+            print("epoch %d avg_whole_tumor_iou_score:%0.3f" % (epoch, avg_whole_iou))
+            print("epoch %d avg_tumor_core_iou_score:%0.3f" % (epoch, avg_core_iou))
+            print("epoch %d avg_enhancing_tumor_iou_score:%0.3f" % (epoch, avg_enhancing_iou))
+            training_losses.append(epoch_loss)
+            validation_losses.append(val_loss)
+            if (args.epochs - 1) % 20 == 0:
+                plt.plot(training_losses, label='Training loss')
+                plt.plot(validation_losses, label='Validation loss')
+                plt.xlabel('Epoch')
+                plt.ylabel('Loss')
+                plt.legend()
+                plt.show()
+    except KeyboardInterrupt:
+        plt.plot(training_losses, label='Training loss')
+        plt.plot(validation_losses, label='Validation loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.legend()
+        plt.show()
     test_loss,noised_test_loss, test_dice,noised_test_dice = test(args)
