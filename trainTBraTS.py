@@ -280,31 +280,33 @@ if __name__ == "__main__":
         for i, data in enumerate(test_loader):
             step += 1
             input, target = data
+            input=input.to(device)
+            target = target.to(device)
             # add gaussian noise to input data
-            noise_m = torch.randn_like(input) * args.Variance
-            noised_input = input + noise_m
+            # noise_m = torch.randn_like(input) * args.Variance
+            # noised_input = input + noise_m
             # x = input.cuda()
             # noised_x = noised_input.cuda()
             x = dict()
-            noised_x = dict()
+            # noised_x = dict()
             for m_num in range(input.shape[1]):
                 x[m_num] = input[...,m_num,:,:,:,].unsqueeze(1)
-                noised_x[m_num] = noised_input[...,m_num,:,:,:,].unsqueeze(1)
+                # noised_x[m_num] = noised_input[...,m_num,:,:,:,].unsqueeze(1)
             target = target
 
             with torch.no_grad():
                 args.mode = 'test'
                 if not args.use_TTA:
                     evidences, loss = model(x, target[:, :, :, :155], args.epochs,args.mode)
-                    noised_evidences, noised_loss = model(noised_x, target[:, :, :, :155], args.epochs,args.mode)
+                    # noised_evidences, noised_loss = model(noised_x, target[:, :, :, :155], args.epochs,args.mode)
                 else:
                     evidences, loss = model(x, target[:, :, :, :155], args.epochs,args.mode,args.use_TTA)
-                    noised_evidences, noised_loss = model(noised_x, target[:, :, :, :155], args.epochs,args.mode,args.use_TTA)
+                    # noised_evidences, noised_loss = model(noised_x, target[:, :, :, :155], args.epochs,args.mode,args.use_TTA)
                 # results with TTA or not
 
                 output = F.softmax(evidences, dim=1)
                 # for input noise
-                noised_output = F.softmax(noised_evidences, dim=1)
+                # noised_output = F.softmax(noised_evidences, dim=1)
 
                 # dice
                 output = output[0, :, :args.input_H, :args.input_W, :args.input_D]
@@ -324,12 +326,12 @@ if __name__ == "__main__":
                 print('current_dice:{} ; current_noised_dice:{}'.format(dice_res, noised_dice_res))
                 # loss & noised loss
                 loss_meter.update(loss.item())
-                noised_loss_meter.update(noised_loss.item())
-        noised_aver_dice = noised_dice_total / len(test_loader)
+                # noised_loss_meter.update(noised_loss.item())
+        # noised_aver_dice = noised_dice_total / len(test_loader)
         aver_dice = dice_total / len(test_loader)
-        print('====> noised_aver_dice: {:.4f}'.format(noised_aver_dice))
+        # print('====> noised_aver_dice: {:.4f}'.format(noised_aver_dice))
         print('====> aver_dice: {:.4f}'.format(aver_dice))
-        return loss_meter.avg,noised_loss_meter.avg, aver_dice,noised_aver_dice
+        return loss_meter.avg,noised_loss_meter.avg, aver_dice
 
 
     epoch_loss = 0
@@ -379,4 +381,12 @@ if __name__ == "__main__":
         plt.ylabel('Loss')
         plt.legend()
         plt.show()
+    plt.plot(training_losses, label='Training loss')
+    plt.plot(validation_losses, label='Validation loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.show()
+    print("Training losses: ", training_losses)
+    print("Validation losses: ",validation_losses)
     test_loss,noised_test_loss, test_dice,noised_test_dice = test(args)
