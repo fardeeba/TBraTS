@@ -148,11 +148,11 @@ if __name__ == "__main__":
             target = torch.squeeze(target)
             iou_res = softmax_mIOU_score(output, target[:, :, :155])
             dice_res = softmax_output_dice(output, target[:, :, :155])
-            dice_values = [t.item() for t in dice_res]
+            dice_values = [t for t in dice_res]
             whole_dice += dice_values[0]
             core_dice += dice_values[1]
             enhanching_dice += dice_values[2]
-            iou_values = [t.item() for t in iou_res]
+            iou_values = [t for t in iou_res]
             whole_iou += iou_values[0]
             core_iou += iou_values[1]
             enhanching_iou += iou_values[2]
@@ -210,11 +210,11 @@ if __name__ == "__main__":
                 iou_res = softmax_mIOU_score(output, target[:, :, :155])
                 dice_res = softmax_output_dice(output, target[:, :, :155])
                 print('current_iou:{} ; current_dice:{}'.format(iou_res, dice_res))
-                dice_values = [t.item() for t in dice_res]
+                dice_values = [t for t in dice_res]
                 whole_dice += dice_values[0]
                 core_dice += dice_values[1]
                 enhanching_dice += dice_values[2]
-                iou_values = [t.item() for t in iou_res]
+                iou_values = [t for t in iou_res]
                 whole_iou += iou_values[0]
                 core_iou += iou_values[1]
                 enhanching_iou += iou_values[2]
