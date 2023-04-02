@@ -338,6 +338,7 @@ if __name__ == "__main__":
     validation_losses = []
     try:
         for epoch in range(1, args.epochs + 1):
+            start = time.time()
             print('===========Train begining!===========')
             print('Epoch {}/{}'.format(epoch, args.epochs - 1))
             epoch_loss, avg_epoch_dice, avg_epoch_iou, avg_whole_dice, avg_core_dice, avg_enhancing_dice, avg_whole_iou, avg_core_iou, avg_enhancing_iou = train(epoch)
@@ -362,13 +363,15 @@ if __name__ == "__main__":
             print("epoch %d avg_enhancing_tumor_iou_score:%0.3f" % (epoch, avg_enhancing_iou))
             training_losses.append(epoch_loss)
             validation_losses.append(val_loss)
-            if (args.epochs - 1) % 20 == 0:
+            if epoch % 20 == 0:
                 plt.plot(training_losses, label='Training loss')
                 plt.plot(validation_losses, label='Validation loss')
                 plt.xlabel('Epoch')
                 plt.ylabel('Loss')
                 plt.legend()
                 plt.show()
+            end = time.time()
+            print("Time for epoch: ",end-start)
     except KeyboardInterrupt:
         plt.plot(training_losses, label='Training loss')
         plt.plot(validation_losses, label='Validation loss')
