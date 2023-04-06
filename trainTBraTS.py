@@ -10,6 +10,7 @@ from predict import tailor_and_concat,softmax_mIOU_score,softmax_output_dice
 import torch.nn.functional as F
 import numpy as np
 import matplotlib.pyplot as plt
+from torch.utils.tensorboard import SummaryWriter
 device='cuda' if torch.cuda.is_available() else 'cpu'
 
 class AverageMeter(object):
@@ -338,6 +339,8 @@ if __name__ == "__main__":
     best_dice = 0
     training_losses = []
     validation_losses = []
+    #tensorboard 
+    tboardWriter=SummaryWriter('runs/simpleMultiClassification')
     try:
         for epoch in range(1, args.epochs + 1):
             start = time.time()
@@ -374,6 +377,8 @@ if __name__ == "__main__":
                 plt.show()
             end = time.time()
             print("Time for epoch: ",end-start)
+            tboardWriter.add_scalar("Loss/train", training_losses[epoch], epoch)
+            tboardWriter.add_scalar("Loss/val", validation_losses[epoch], epoch)
     except KeyboardInterrupt:
         plt.plot(training_losses, label='Training loss')
         plt.plot(validation_losses, label='Validation loss')
