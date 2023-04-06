@@ -55,20 +55,20 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=0.002, metavar='LR',
                         help='learning rate')
     # DataSet Information
-    parser.add_argument('--root', default='/kaggle/input/brats2019-lgg/DataSet1', type=str)
+    parser.add_argument('--root', default='/kaggle/input/brats2019/DataSet', type=str)
     parser.add_argument('--save_dir', default='./results', type=str)
     parser.add_argument('--train_dir', default='MICCAI_BraTS_2019_Data_TTraining', type=str)
     parser.add_argument('--valid_dir', default='MICCAI_BraTS_2019_Data_TValidation', type=str)
     parser.add_argument('--test_dir', default='MICCAI_BraTS_2019_Data_TTest', type=str)
     parser.add_argument("--mode", default="train", type=str, help="train/test/train&test")
     parser.add_argument('--train_file',
-                        default='/kaggle/input/brats2019-lgg/DataSet1/MICCAI_BraTS_2019_Data_Training/Ttrain_subject.txt',
+                        default='/kaggle/input/brats2019/DataSet/MICCAI_BraTS_2019_Data_Training/Ttrain_subject.txt',
                         type=str)
     parser.add_argument('--valid_file',
-                        default='/kaggle/input/brats2019-lgg/DataSet1/MICCAI_BraTS_2019_Data_Training/Tval_subject.txt',
+                        default='/kaggle/input/brats2019/DataSet/MICCAI_BraTS_2019_Data_Training/Tval_subject.txt',
                         type=str)
     parser.add_argument('--test_file',
-                         default='/kaggle/input/brats2019-lgg/DataSet1/MICCAI_BraTS_2019_Data_Training/Ttest_subject.txt',
+                         default='/kaggle/input/brats2019/DataSet/MICCAI_BraTS_2019_Data_Training/Ttest_subject.txt',
                          type=str)
     parser.add_argument('--dataset', default='brats', type=str)
     parser.add_argument('--classes', default=4, type=int)# brain tumor class
